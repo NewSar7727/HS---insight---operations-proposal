@@ -1,0 +1,51 @@
+c8d4c6b4-8bba-4eb4-9c6f-8705a82a953a
+
+domain: operation claims
+https://github.com/handshake-project-insight/operations-claims-eded247b-1fd2d8f84b93
+
+proposal ------------------------------------------------
+Category: Operations
+Sub-Category: {{Logistics}}
+
+Plan the shutdown of a closing bearing plant. Each production line moves to one of three receiving plants, and the closing plant builds an inventory bank so that no customer runs short during the transition. The goal is the lowest total cost.
+
+1. Difficulty
+
+This is work an operations or supply chain leader does when a plant closes and its product lines move to other plants. A bad plan either leaves customers short or spends millions on overtime, storage, and freight. The data is synthetic and modeled on a real closure: 8 production lines, 40 part families, 3 receiving plants, 5 customer regions, and a 30-week horizon. Every rule is written into /app/spec.
+
+What makes it hard is that the constraints work against each other:
+Moving a line takes time. A line produces nothing while it is being moved. After it is installed, the receiving plant cannot ship from it until the customer approves the new location, and output then ramps up gradually. The bank has to cover all three phases, not just the move.
+
+The workforce shrinks. Labor hours at the closing plant decline every week after the closure announcement. Building the bank early is cheaper in labor, but it raises storage cost and runs into the warehouse capacity limit.
+
+Heat treat is shared. Every line at the closing plant depends on its heat treat process, which cannot leave until the last line stops running there. This limits the order in which lines can move.
+
+Receiving plants are not equal. Each has limited spare capacity and different production and freight costs to each region. Choosing the cheapest plant for every line overloads it.
+
+2. Approach (key insight)
+
+The key insight is that the bank should be sized for move time plus approval time plus the ramp-up shortfall. It should be built while labor hours are still available, and the lines should be sequenced so that the lines with the longest bank requirements move first.
+
+An expert would model this as a time-indexed optimization with these decisions:
+the destination and move week for each line
+weekly production at each plant
+the bank inventory level each week
+weekly shipments to each customer region
+
+The model is then solved and the resulting plan is checked against the rules. Expert estimate: 6–8 hours. Most of that time goes to modeling the move, approval, and ramp-up timing and the attrition limits correctly, not to running the solver.
+
+3. Verification
+
+The agent writes three CSV files:
+line_moves.csv : line_id, destination, move_start_week
+production.csv : week, plant, part_family, units
+shipments.csv : week, plant, region, part_family, units
+All values are integers, and weeks are numbered 1–30.
+
+The verifier simulates the plan week by week using the spec rules. The plan fails if any rule is broken: a customer shortage, a capacity or labor-hour overrun, warehouse overflow, heat treat leaving early, or shipping before approval. If the plan is feasible, the verifier computes total cost in cents. It passes if that cost is within 1% of the reference optimum, which has been proven optimal with a MIP solver.
+
+The 1% band allows equally good plans with different schedules while rejecting weaker strategies. Naive plans, such as moving every line at closure or building the whole bank at the start, are calibrated to cost at least 5% more. Grading looks only at the plan, so any method is accepted.
+
+4. Category justification
+
+This is an Operations task because it is the transition plan for a plant shutdown, balancing capacity, labor, and customer delivery. It falls under Logistics because its core decisions are about moving product lines across the plant network, positioning inventory, and choosing freight routes so that customers are served without interruption.

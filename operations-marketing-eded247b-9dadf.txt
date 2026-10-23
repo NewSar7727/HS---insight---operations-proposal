@@ -1,0 +1,60 @@
+operations-marketing-eded247b-9dadf836db3e
+
+domain: claims
+https://github.com/handshake-project-insight/operations-marketing-eded247b-9dadf836db3e
+
+Category: Operations
+Sub-Category: {{Marketing}}  
+
+Review one month of distributor ship-and-debit rebate claims against the manufacturer's Special Pricing Agreements (SPAs) and program terms. The agent writes a program that is graded on months it has never seen.
+
+1. Difficulty
+
+What a distributor is owed depends on the SPA as amended on the sale date, not on the claim. Sales reps change SPA dates, authorized customers, prices, and caps through free-text emails.   
+
+An amendment is void if the rep is not authorized for that SPA or if it was sent after the SPA expired, and ambiguous dates follow the rep's regional format. 
+
+Caps are cumulative across prior paid claims. 
+
+Prices are quoted per hundred or per thousand units while claims arrive in eaches or packs. 
+
+Returns can reference a prior-month invoice and must be reversed at the rate originally paid. 
+
+Agents typically fail by using the submission date instead of the sale date, applying void amendments, resetting caps each month, or losing cents to floating-point arithmetic. 
+
+This is the monthly work of a channel rebate analyst in industrial distribution. The data is synthetic but modeled on real distributor claim files and rep correspondence.  
+
+2. Approach (key insight)
+
+Rebuild each SPA's valid terms first, discarding void amendments. Load paid history to set the remaining caps. 
+
+Then process claim lines by sale date: resolve the customer, reject invalid lines, convert units, pay up to the cap, and reverse returns at the original paid rate. 
+
+The key insight is that the amended SPA on the sale date governs payment, not the claim. 
+
+A rebate analyst who holds this distinction could implement it in about 8 hours.
+
+3. Verification
+
+The harness runs python3 /app/audit.py <package_dir> <output_csv> on each held-out month. 
+
+The output has columns claim_id, line_no, approved_qty, approved_cents, with one row per claim line, sorted by claim and line. Rejected lines are 0, 0, and returns are negative. 
+
+The output is compared to a reference implementation by exact integer match, with no tolerance.
+
+The shipped program_terms.md states every convention needed for an exact answer:
+Rounding: compute the exact per-each rate, multiply by quantity, and round half-up to the cent per line.
+Caps: lines over the cap are paid partially, and cap consumption follows sale date, then invoice, then line.
+Late: more than 90 calendar days after the sale.
+Duplicates: same distributor, invoice, and line.
+Conflicting amendments: the latest valid effective date wins.
+Customer names resolve through an explicit alias table, not fuzzy matching.
+
+The sample month ships without answers, and held-out months use different SPAs, customers, and cap balances. An anti-bypass check confirms that claimed amounts disagree with the reference, so paying claims as submitted cannot pass.
+
+4. Category Justification
+
+SPAs and ship and debit programs are channel marketing tools that manufacturers use to win specific end customers through distributors. Claim review ensures that trade spend reaches only the targeted customers, products, dates, and volumes. 
+
+That places the task under Operations - Marketing.
+

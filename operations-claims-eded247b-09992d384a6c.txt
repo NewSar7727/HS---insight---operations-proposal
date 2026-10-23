@@ -1,0 +1,39 @@
+fe82dc56-ac33-4f79-b4bc-ca3958e6a4b0
+domain: operation claims
+
+https://github.com/handshake-project-insight/operations-claims-eded247b-09992d384a6c
+proposal --------------------------------- 
+Category: Operations
+Sub-Category: {{Manufacturing Quality & Traceability}}  
+
+Write a program that determines the exact containment scope and disposition for quality incidents in a lithium-ion cell winding and assembly plant. It is graded on incident directories it has never seen.  
+
+Difficulty:
+
+When a defect escapes, a quality engineer must decide exactly which cells are suspect. Missing one risks shipping a cell with internal-short risk to an automotive customer, and holding too many wastes hundreds of thousands of dollars. This is the daily work of quality engineers running 8D containment under IATF 16949, and the scope is what customer auditors challenge.  
+
+The right scope is not "that machine, that shift."
+
+It depends on three things spread across different records:
+
+Detection capability:  The suspect window starts at the last passing check capable of detecting this failure mode, per the control plan. A visual check does not clear a separator puncture; only a hi-pot test does.  
+
+Material genealogy: A bad electrode roll follows the roll across winders. Some partial-roll transfers appear only in free-text shift handover notes.  
+
+Measurement: An out-of-calibration tester makes every cell it passed since its last good calibration suspect, on any machine.
+
+Traps include tester clock offsets recorded only in calibration logs, reworked cells with new serial numbers, and disposition based on each cell's location at the time of detection (WIP, warehouse, shipped, or scrapped).
+
+Data: The data is synthetic but modeled on real MES and QMS exports: event logs, roll splices, test results, calibration records, rework log, inventory and shipping records, control plan, plant containment procedure, and handover notes. Each directory covers about 20K–60K cells across 8 winders and 3 shifts.
+
+Approach (key insight):
+
+Scope is defined by detection capability and genealogy, not by time and machine. The program normalizes clocks, builds roll-to-winder usage from splice events and handover notes, and brackets each incident by its cause type (process, material, or gauge). It then remaps reworked serials and assigns each cell's disposition from its location at detection time. A quality engineer who knows this logic could build it in about 6–8 hours.
+
+Verification:
+
+The program runs on each held-out directory and outputs rows of (incident_id, cell_serial, disposition). Rows must match the reference exactly, with no tolerance, since a cell is either in scope or not. Quarantining everything fails, and each directory's shipped supervisor containment list is verified to be wrong, so copying it fails too. Only the output is graded, not the method.
+
+Category justification:
+
+This is core manufacturing quality work: reverse traceability, control-plan detection capability, calibration rules, and inventory disposition applied together across plant records. Generic data skills or reasoning alone won't get it right.

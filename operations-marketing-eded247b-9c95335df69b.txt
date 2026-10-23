@@ -1,0 +1,44 @@
+68c9b3b8-ea20-41cc-b741-a3768cc409c6
+
+domain: operation maketing
+https://github.com/handshake-project-insight/operations-marketing-eded247b-9c95335df69b
+proposal ---------------------------------------
+Category: Operations
+Sub-Category: {{Manufacturing Quality & Metrology}}  
+
+TASK
+A rail bearing reconditioning plant washes used bearing cups and cones in a hot wash, then gauges bore and OD on comparator gauges set against certified masters. The agent writes /app/disposition.py, which takes a week folder of inspection records and outputs a corrected size and a disposition for every part. It is graded on unseen weeks.
+
+Inputs (/app/data/week_*/): gauge readings (mixed inch/mm), mastering log, master ring table (certified size at 20 C, alpha), wash exit log (mixed 12/24-hour times; parts can be re-washed), hourly shop temps, part temperature spot checks, free-text shift notes (the only record of gauge swaps and aborted masterings), and inspection spec (nominal, limits, alpha).
+
+Conventions:
+
+Deviation = size at 20 C minus nominal, in microns, positive means larger. It passes if within spec limits, inclusive.
+
+Thermal correction is linear. The master ring is corrected to its logged temperature.
+
+The offset in effect is from the station's last successful mastering, with no interpolation.
+
+A mastering on the wrong master is unsuccessful. After a swap, abort, or unsuccessful mastering, the station's readings are void until its next successful mastering.
+
+Part temperature is the spot check if one is within 2 minutes of gauging; otherwise it is estimated from time since the part's latest prior wash exit.
+
+The latest valid reading governs. No valid reading means REINSPECT.
+
+Output: dispositions.csv with header serial,feature,deviation_um,disposition, one row per serial-feature pair, any order, deviation to 1 decimal (empty for REINSPECT), disposition RELEASE, REJECT, or REINSPECT.
+
+WHY IT'S HARD
+
+This is daily work for a reconditioning quality engineer, and mistakes ship bad bearings or scrap good ones. The naive fix, correcting with shop air temperature, is wrong: parts leave the wash hot, and a few degrees moves the reading by about the full tolerance band. Two traps need floor experience. Re-washed parts must be tied to their latest wash, not the first. And operators sometimes set a gauge on the wrong master while logging the right ID. Nothing flags it; it shows only as an offset jump equal to the size difference between two masters. A generalist treats that as an outlier, while a metrology expert recognizes it and voids the station. The data is synthetic but physically modeled: Newtonian cooling, mastering drift, re-washes, wrong-master events, and seeded, undisclosed parameters.
+
+APPROACH
+
+Normalize units and times. Build a timeline for each station from the mastering log and shift notes, flagging wrong-master masterings by matching offset jumps to ring-size differences. Fit Newtonian cooling from spot checks paired with each part's latest prior wash. Correct each reading for part temperature and active offset, keep the latest valid reading, and assign a disposition. Key insight: the true size depends on the part's thermal state since its last wash and on the integrity of the last mastering, neither of which the gauge reading shows. Expert time: about 8-10 hours.
+
+VERIFICATION
+
+Run on held-out weeks generated at grading time from hidden seeds and compare with a reference implementation. Dispositions must match exactly, and deviations must be within +/-1.0 micron. The generator guarantees that no reference deviation is within 2 microns of a spec limit, so valid cooling-fit choices (which agree within 0.5 micron) never flip a disposition. Normal mastering drift stays under 3 microns while wrong-master jumps exceed 20 microns. Anti-bypass: raw readings and ambient-only correction must each flip at least 10% of rows, and ignoring re-washes or wrong-master handling must each flip at least 3%. The data doesn't exist until grading, so answers can't be hardcoded.
+
+CATEGORY
+
+Operations / Manufacturing Quality & Metrology: the difficulty is shop-floor measurement practice, meaning gauge mastering, bad-master detection, and part thermal state after washing. The statistics are simple.

@@ -1,0 +1,43 @@
+10 - 49fc3644-b3e5-412f-a665-7ad2c73c13e7
+domain: supply chain
+GitHub: https://github.com/handshake-project-insight/operations-supply-chain-eded247b-d02fae6fa8de
+proposal:
+
+Task: Build a rail bearing reconditioning plant's 12-week purchase plan for new cups and cones from teardown records, and correct the ERP's flawed MRP plan.
+
+1. Difficulty
+
+This is the weekly job of a reconditioning plant's supply chain manager. Data is synthetic, modeled on a real AAR M-1003 plant: core backlog, teardown log with inspector notes, SAP stock and POs, supplier lead times and MOQs, orders, and the ERP's flat-yield MRP plan with seeded errors.
+
+A recovered part is usable only if:
+- Notes don't condemn it. "RF" or "HT DISC" scraps the bearing. "Water etch cone A/B" scraps that cone only; the other cone stays usable.
+- It pairs within the same design family, not the same AAR class (1 cup + 2 cones).
+- It is under the age limit (cones 180 months, cups 300) at the build week (ship week − 1), not the inspection week.
+
+Condemned cores still use up teardown capacity, which delays later parts until they can age out.
+
+Models are expected to fail by using flat yield, pairing by AAR class, checking age at inspection, or misreading negations ("no HT disc").
+
+2. Approach (key insight)
+
+Build supply core by core. Design family and build week decide reuse, not AAR class and inspection date. Classify the notes, schedule teardown, allocate parts to orders, then net the shortfall and lot-size it.
+
+Estimate: 5–6 hours for a senior reconditioning planner.
+
+3. Verification
+
+The task ships policy.md, which states every rule:
+- Notes: a finite phrase list. A negation word ("no", "not", "ruled out") in the same clause voids the defect.
+- Teardown: FIFO by receipt time, then core ID. Parts are available the next week.
+- Orders: allocated by ship week, then order ID. No partial shipments.
+- Parts: oldest date code first, recovered parts before new.
+- Lot size: round up to the MOQ. No safety stock; excess carries forward.
+- Late orders: emit the actual ISO week, even beyond week 12.
+
+Outputs: purchase_releases.csv (part_number, release_week, qty) and order_ship_plan.csv (order_id, ship_week). Weeks are ISO YYYY-Www, and zero rows are omitted. Grading is exact row-set match; a missing or extra row fails.
+
+Anti-bypass: 3 held-out weeks regenerate the data, MOQs, lead times and ERP errors.
+
+4. Category: Operations / Supply Chain
+
+A time-phased purchase plan for a reverse supply chain, where supply is uncertain core returns.

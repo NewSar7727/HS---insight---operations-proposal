@@ -1,0 +1,61 @@
+d8006dc4-d35f-4bbb-aac6-822a42b050a8
+
+domain: claims
+https://github.com/handshake-project-insight/operations-finance-eded247b-1f7203624d86
+
+Category: Operations
+
+Sub-Category: {{Finance}} 
+Why is this task genuinely difficult?
+
+The agent closes a quarter of distributor rebate programs as a commercial finance analyst would. It must decide every claim line and calculate what each distributor earned, was paid, and is still owed. Rebate analysts and commercial finance teams do this every quarter; errors mean lost margin, audit findings, and distributor disputes.
+
+The data is synthetic (private seed), modeled on real industrial distribution programs: about 38,000 invoice lines, 1,200 credit memos, a 2,500-SKU master with supersessions, an effective-dated hierarchy (18 branches, 6 parents), three plain-text contracts with two amendments, about 640 claims, a payments ledger, and a GL control total. Dates, SKU codes, and quantities are messy, as in real exports.
+
+The traps are judgment calls, and each gives wrong numbers that look right: 
+Retroactive vs. marginal tiers, where a late tier crossing reprices earlier sales.
+ 
+One amendment retroactive to quarter start, another effective mid-quarter.
+ 
+Credit memos belong to the original invoice's period; one points to the prior quarter and must be excluded. 
+Superseded SKUs, and a branch that changes parent mid-quarter. 
+Special-pricing (ship-and-debit) lines excluded from volume rebates. 
+A growth threshold, and a Canadian distributor invoiced in CAD.
+Duplicate resubmissions and late claims.
+No public dataset or solution exists.
+
+Solution approach.
+
+Profile /app/data, normalize the data, and tie totals to the GL control. Map each invoice line to its parent as of the invoice date and to its current SKU. Remove ineligible lines and net credits to the right period. Compute eligible sales, tier, and rebate per distributor and program. Then code claim lines and allocate the remaining entitlement.
+
+Key insight: calculate earnings first. Claims are the distributor's version, not the truth.
+
+Expert estimate: about 6 hours (2 to understand the contracts and data, 2.5 to build the pipeline, 1.5 to reconcile).  
+ 
+Verification
+Claim rules are fixed in each contract's Claims Administration clause:
+
+Code precedence: DUPLICATE > LATE_SUBMISSION > NOT_ENROLLED > SPA_EXCLUDED > INELIGIBLE_SKU > EXCEEDS_ENTITLEMENT. 
+
+For duplicates, the earliest (claim_date, claim_id) is kept and later ones are DENY/DUPLICATE. 
+
+Remaining entitlement (earned minus paid, not below zero) is allocated to valid lines in (claim_date, claim_id, line_no) order. The line that crosses the limit is PARTIAL/EXCEEDS_ENTITLEMENT, and later lines are DENY/EXCEEDS_ENTITLEMENT.
+
+Outputs:
+/app/output/claim_decisions.csv with header claim_id,line_no,decision,approved_amount,reason_code; any row order; DENY rows have 0.00; APPROVE rows have NONE. 
+
+/app/output/accrual_summary.json, a list with one record per distributor and program: distributor_id, program_id, eligible_net_sales, tier_achieved, rebate_earned, previously_paid, 
+
+approved_this_close, accrual_balance.
+
+Formats: tier_achieved is an integer (1 = lowest tier, 0 = no tier or growth threshold missed). All amounts are in USD; CAD is converted at the contract rate on the total. Totals are rounded half-up to cents only at the end.
+
+Pytest in a separate container checks exact headers, every claim line appearing once, exact decision/reason_code/tier, amounts within $0.01, and two consistency rules: approved lines sum to approved_this_close, and approved_this_close + accrual_balance = rebate_earned - previously_paid. The result is PASS/FAIL. Each common mistake shifts results by hundreds of dollars or flips decisions. Expected values live only in the verifier, so nothing can be hardcoded.
+
+
+
+
+
+Category fit
+
+Operations / Finance: this is a quarterly finance close, matching contract terms to transaction data to produce auditable payments and accruals. Code is the tool; the core skill is financial operations judgment.

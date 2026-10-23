@@ -1,0 +1,69 @@
+e3ba5717-f214-4c78-acd0-e0cde64e6575
+
+https://github.com/handshake-project-insight/operations-supply-chain-eded247b-29659800a331.git
+
+proposal: 
+
+Task: A bearing plant is closing, and its 12 lines move one at a time to a sister plant. Plan the inventory bank that keeps 35 customers supplied through the move.
+
+1. Difficulty
+
+Each line shuts down, ships, and ramps up at the new plant. Two things work against the planner. Customers can’t take parts from the new plant until they re-approve it. And the old plant loses operators before its lines leave. So the planner must work out how much to bank for each customer, and build it with capacity that keeps shrinking.
+
+Plant managers do this in every consolidation. Bank too little and deliveries are missed; bank too much and cash is tied up. The author ran a Timken bearing plant through its closure.
+
+Data (synthetic, private seed): 26 weeks, 12 lines, 180 parts, 35 customers. It includes:
+
+weekly demand
+routings
+the line move schedule
+a free-text approval tracker
+an HR attrition log
+crew sizes
+inventory with hold codes
+the ERP’s bank report
+
+Traps (each gives believable but wrong numbers):
+
+A gap ends when the customer approves the part, not when the line restarts.
+A rejection logged after interim approval reopens the gap.
+Staffing limits capacity before machines do. On three lines, one skill drops 40% at week 10.
+During ramp-up, the new plant covers only part of demand.
+Each part family run in a week costs a 4-hour changeover.
+Held stock is usable only from its release week.
+The ERP report gets all of the above wrong.
+2. Approach
+Turn the approval tracker into an approval week per customer and part, and the HR log into headcount per week.
+Simulate the new plant’s coverage week by week. Whatever it can’t cover, net of available stock, is the bank.
+Build the bank backward from each line’s shutdown, using the capacity staffing actually allows.
+
+Key insight: the bank is sized per customer, because approval decides when the new plant takes over. And the capacity to build it shrinks while you build it.
+
+Expert time: about 7 hours (2 to learn the data, 3.5 to build, 1.5 to reconcile).
+
+3. Verification
+
+The rules are fixed in /app/data/planning_manual.md:
+
+Approval: the first APPROVED or INTERIM week; a later REJECTED cancels it. Distributors are approved at restart.
+Ramp-up: the new plant supplies floor(ramp% × approved demand).
+Staffing: operators are assigned to lines in shutdown order. Shifts per line = min(15, operators × 5 ÷ crew size), with up to 3 overtime shifts.
+Build order: parts go in order of first need week, each into the latest week with spare hours. Overtime is used last, and anything still uncovered is a shortage.
+
+Outputs:
+
+bank_requirement.csv
+build_plan.csv
+shortages.csv
+
+Checks: Pytest requires an exact integer match on every row, with no tolerance. It also checks that:
+
+no line exceeds its capacity
+no customer gets new-plant parts before approval
+every uncovered week is either banked or listed as a shortage
+
+Anti-cheat: the solution runs on two held-out seeds. Copying the ERP report fails.
+
+4. Category Fit
+
+Operations / Supply Chain: this is production-transfer planning, banking inventory across two plants under approval gaps and labor attrition. Code is only the tool; the skill is planning judgment.

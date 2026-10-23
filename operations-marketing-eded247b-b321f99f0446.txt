@@ -1,0 +1,47 @@
+dce2c4af-a2d9-4b1e-9eaa-06e1d4846d60
+https://github.com/handshake-project-insight/operations-marketing-eded247b-b321f99f0446
+
+Category: Operations
+Sub-Category: Marketing
+
+An industrial manufacturer pays its distributors through channel marketing programs: special-price discounts on specific deals (ship-and-debit) and quarterly growth rebates.
+The agent must audit one quarter of distributor claims and decide what is actually owed.
+The files in /app/data/ include sales reports, claims, the special-price agreement register, invoices, price-protection credits and a program guide.
+The agent writes /app/claims_audit.py.
+It produces claim_lines.csv (claim_id, line_no, decision, reason_code, allowed_cents) and program_rebates.csv (distributor_id, program_id, tier_reached, rebate_cents) in /app/out/.
+
+1. Difficulty
+
+Most claims look correct on paper. 
+
+The real amount owed depends on what the distributor actually paid for the inventory it sold, and that never appears on the claim. It has to be rebuilt from invoice history in FIFO order. 
+
+If the manufacturer already gave a price-protection credit on that inventory, the credit must be subtracted, or the distributor gets paid twice for the same price drop. Sales already discounted through a special-price deal can't also count toward the growth rebate. 
+
+Once a distributor reaches a higher tier, the new rate applies to all of its sales, not just the extra volume. A rebate analyst does this work every quarter. 
+
+The data is synthetic, generated from a hidden seed, and modeled on a real rebate process, with messy customer names and inconsistent report formats.
+
+
+
+2. Approach (key insight)
+
+Don't trust the claimed cost. Rebuild each distributor's inventory cost from invoices first, net of price protection. 
+
+Then check each claim against its agreement and calculate the growth rebate only on sales that weren't already discounted. An experienced rebate analyst could build this in about 6–10 hours.
+
+
+
+3. Verification
+
+The checker generates new quarters from hidden seeds and compares both CSVs to a reference solution, requiring every value to match exactly. 
+
+All amounts are in whole cents, so there is no tolerance. Rounding, tie-breaking, the claim window and the order of deny reasons are all spelled out in the program guide. 
+
+The distributors' own claimed totals are deliberately wrong, so approving every claim as submitted fails. The task passes only if both CSVs match the reference for every test quarter.
+
+
+
+4. Category justification
+
+Ship-and-debit discounts, price protection and growth rebates are channel marketing programs. Auditing them is a recurring operations control that directly affects company profit.

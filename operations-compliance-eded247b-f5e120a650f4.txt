@@ -1,0 +1,58 @@
+9 - e89ac11b-a166-44e0-9bf2-39e8b14a2c2f
+
+domain: compliance
+
+https://github.com/handshake-project-insight/operations-compliance-eded247b-f5e120a650f4
+
+proposal: 
+
+Task: Rebuild a manufacturing plant’s 2025 OSHA 300 log and 300A summary from raw records, and correct the site’s flawed draft log.
+
+1. Difficulty
+
+This is the yearly job of an EHS manager or plant manager, who signs the 300A and certifies it as accurate under 29 CFR 1904. Errors lead to OSHA citations and wrong TRIR/DART rates, and customers, insurers and contract bids all depend on those rates.
+
+The data is synthetic but modeled on a real 310-worker, 3-shift rail bearing plant. It includes about 170 incident reports with free-text narratives, clinic notes and physician work-status forms, payroll and timekeeping files, agency temp timesheets, a job-function catalog, three years of audiograms in SQLite, and the previous coordinator’s draft log, which has 11 seeded errors.
+
+A case is recordable only if it passes several layered rules, and no single record gives the answer:
+
+Medical treatment vs. first aid: OTC drugs count only at prescription strength (ibuprofen over 467 mg in a single dose). Sutures count but Steri-Strips don’t. Recommended treatment counts even if the worker refused it.
+Day counts: Days follow the physician’s recommendation, not attendance. They are calendar days, capped at 180.
+Restricted work: A restriction only counts if it limits a function the job performs at least once a week, per the job catalog.
+Hearing loss: The standard threshold shift (STS) is calculated with age correction, a separate 25 dB check, retests and a revised baseline.
+Edge cases: New case vs. recurrence, work-relatedness exceptions, supervised temps, privacy cases, and 2024 carryover cases.
+2. Approach (key insight)
+
+Build a day-by-day timeline for each case from the work-status forms first, never from the incident report alone. Then apply the rules in a fixed order:
+
+Is the person covered?
+Is the case work-related?
+Is it a new case?
+Did it involve medical treatment or lost/restricted days?
+Count the days and decide the outcome.
+
+Calculate hearing STS in code from the audiogram database. Calculate the 300A hours, average employees and rates from payroll plus temp timesheets.
+
+Estimate: 6–8 focused hours for a senior EHS professional who knows Part 1904.
+
+3. Verification
+
+The agent produces three files:
+
+osha300_2025.csv (case rows)
+osha300a_2025.json (totals, hours, average employees, TRIR, DART)
+osha300_2024_updates.csv (carryover corrections)
+
+These are compared with a reference implementation:
+
+The set of recordable cases must match exactly.
+Outcome, case type, privacy flag and day counts must match exactly (integers).
+TRIR and DART must match after rounding to 2 decimals, which is how they are reported.
+
+Each case is designed to have one defensible answer. Anti-bypass: copying the draft log fails on its 11 errors, and the data exists only in the container. Only the outputs are graded, not the method.
+
+4. Category: Operations / Compliance
+
+Operations: Recordkeeping is a core plant operations duty that draws on staffing, timekeeping, job design and temp-labor records.
+
+Compliance: The output is a federally required record under 29 CFR 1904, with certification, posting and electronic submission rules. Every judgment in the task is a regulatory call.
